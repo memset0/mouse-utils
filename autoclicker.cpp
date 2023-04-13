@@ -1,3 +1,11 @@
+// @Copyright: Copyright(c) 2023 mem.ac
+// @License: MIT
+// @FileName: autoclicker.cpp
+// @Author: memset0
+// @Version: 1.0.0
+// @Date: 2023-04-14
+// @Description: yet another auto clicker for personal use
+
 #include "windows.h"
 #include <algorithm>
 #include <cstdio>
