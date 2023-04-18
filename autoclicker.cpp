@@ -2,15 +2,18 @@
 // @License: MIT
 // @FileName: autoclicker.cpp
 // @Author: memset0
-// @Version: 1.0.0
-// @Date: 2023-04-14
+// @Version: 1.1.2
+// @Create-Date: 2023-04-14
+// @Modify-Date: 2023-04-18
 // @Description: yet another auto clicker for personal use
 
 #include "windows.h"
 #include <algorithm>
 #include <cstdio>
+#include <ctime>
 #include <iostream>
 #include <string>
+#include <vector>
 
 #define ULL unsigned long long
 
@@ -26,8 +29,8 @@ using std::cout;
 using std::endl;
 using std::string;
 
-int CPS_L = 15;
-int CPS_R = 30;
+int CPS_L = 19;
+int CPS_R = 15;
 ULL MAINTAIN_PERIOD = SECOND >> 1;
 
 enum SHORTCUT {
@@ -91,7 +94,7 @@ enum SHORTCUT {
 };
 
 void crashed(int exitcode = 1) {
-  printf("输入回车键退出程序\n");
+  printf("程序遇到问题退出，输入回车关闭窗口");
   string buffer;
   cin >> buffer;
   exit(exitcode);
@@ -122,8 +125,6 @@ public:
   }
 
   inline void Shrink(ULL current_time) {
-    // 将监听周期之外的事件从队列中移除
-
     while (r != l && queue[l] < current_time - period) {
       l++;
       if (l == MAX_QUEUE) {
@@ -133,7 +134,6 @@ public:
   }
 
   inline void Push(ULL event_time) {
-    // 将新的事件时间压入队列
     queue[r++] = event_time;
     if (r == MAX_QUEUE) {
       r = 0;
@@ -145,11 +145,11 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
   if (nCode >= 0) {
     switch (wParam) {
     case WM_LBUTTONDOWN:
-      debug("鼠标左键被点击 %llu\n", GetTime());
+      debug("Left button clicked %llu\n", GetTime());
       left_click_q.Push(GetTime());
       break;
     case WM_RBUTTONDOWN:
-      debug("鼠标右键被点击 %llu\n", GetTime());
+      debug("Right button clicked %llu\n", GetTime());
       right_click_q.Push(GetTime());
       break;
     }
@@ -159,10 +159,9 @@ LRESULT CALLBACK LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM lParam) {
 }
 
 DWORD WINAPI RegisterMouseListener(LPVOID lpParam) {
-  // 安装鼠标事件钩子
   HHOOK mouse_hook = SetWindowsHookEx(WH_MOUSE_LL, LowLevelMouseProc, NULL, 0);
   if (mouse_hook == NULL) {
-    printf("安装鼠标事件钩子失败！\n");
+    printf("挂载监听钩子失败");
     return crashed(), 1;
   }
 
@@ -172,17 +171,35 @@ DWORD WINAPI RegisterMouseListener(LPVOID lpParam) {
     DispatchMessage(&msg);
   }
 
-  // 卸载鼠标事件钩子
   UnhookWindowsHookEx(mouse_hook);
   return 0;
 }
 
-void SendMouseClick(DWORD dwflags) { mouse_event(dwflags, 0, 0, 0, 0); }
+void SendMouseClick(DWORD dwflags) {
+  // mouse_event(dwflags, 0, 0, 0, 0);
+
+  INPUT input = {0};
+  input.type = INPUT_MOUSE;
+  input.mi.dwFlags = dwflags;
+
+  SendInput(1, &input, sizeof(INPUT));
+}
+
+void SendMouseClick(std::vector<DWORD> dwflags) {
+  for (size_t i = 0; i < dwflags.size(); i++) {
+    if (i) {
+      Sleep(3 + rand() % 5);
+    }
+    SendMouseClick(dwflags[i]);
+  }
+}
 
 int main() {
+  srand(time(NULL));
+
   HANDLE hThread = CreateThread(NULL, 0, RegisterMouseListener, NULL, 0, NULL);
   if (hThread == NULL) {
-    printf("无法创建鼠标事件监听线程！\n");
+    printf("创建子进程失败");
     return crashed(), 1;
   }
 
@@ -198,25 +215,25 @@ int main() {
       left_click_q.Shrink(current_time);
       right_click_q.Shrink(current_time);
 
-      debug("鼠标侧键被按下 %d %d %d %d %llu %lf\n", (int)state_x1,
+      debug("X-button Down %d %d : %d %d %llu %lf\n", (int)state_x1,
             (int)state_x2, (int)left_click_q.Length(),
             (int)right_click_q.Length(), current_time,
             (double)current_time / SECOND);
 
       if (state_x2 && last_left_t < current_time - SECOND / CPS_L &&
           left_click_q.Length() < CPS_L * MAINTAIN_PERIOD / SECOND) {
-        SendMouseClick(MOUSEEVENTF_LEFTDOWN | MOUSEEVENTF_LEFTUP);
+        SendMouseClick({MOUSEEVENTF_LEFTDOWN, MOUSEEVENTF_LEFTUP});
         last_left_t = current_time;
       }
 
       if (state_x1 && last_right_t < current_time - SECOND / CPS_R &&
           right_click_q.Length() < CPS_R * MAINTAIN_PERIOD / SECOND) {
-        SendMouseClick(MOUSEEVENTF_RIGHTDOWN | MOUSEEVENTF_RIGHTUP);
+        SendMouseClick({MOUSEEVENTF_RIGHTDOWN, MOUSEEVENTF_RIGHTUP});
+
         last_right_t = current_time;
       }
 
     } else {
-      // debug("鼠标侧键没有被按下\n");
     }
   }
 }
