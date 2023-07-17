@@ -2,7 +2,7 @@
 // @License: MIT
 // @FileName: autoclicker.cpp
 // @Author: memset0
-// @Version: 2.2.0
+// @Version: 3.0.1
 // @Create-Date: 2023-04-14
 // @Update-Date: 2023-07-17
 // @Description: yet another auto clicker for personal use
@@ -215,7 +215,7 @@ void LoadConfig() {
   if (CPS_R_MAX == -1) CPS_R_MAX = CPS_R;
 
   printf("µ±Ç°ÅäÖÃ£º\n");
-  printf("×ó¼üCPS£º%d ~ %d\n", CPS_L_MIN, CPS_R_MAX);
+  printf("×ó¼üCPS£º%d ~ %d\n", CPS_L_MIN, CPS_L_MAX);
   printf("ÓÒ¼üCPS£º%d ~ %d\n", CPS_R_MIN, CPS_R_MAX);
   printf("²à¼ü¼ì²â½»»»£¨ÊÇ=1£¬·ñ=0£©£º%d\n", SWAP_X_CLICK);
 }
